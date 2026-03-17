@@ -1,17 +1,17 @@
-# 📜 Deep Past Initiative: Akkadian-to-English Translation (v20)
+# Deep Past Initiative: Akkadian-to-English Translation (v20)
 
 This repository contains a highly optimized inference pipeline for the **Deep Past Initiative** machine translation challenge. The project focuses on translating ancient Akkadian transliterations into English using a two-model ByT5 ensemble and a novel **Cross-Model-Aware Agreement Minimum Bayes Risk (MBR)** decoding strategy.
 
 ---
 
-## 🚀 Key Innovation: Source-Aware Agreement MBR
+## Key Innovation: Source-Aware Agreement MBR
 
 In standard ensemble decoding, candidates are often treated equally regardless of their source. Version 20 introduces **Source-Aware Agreement Scoring**, which distinguishes between two fundamentally different types of evidence:
 
 * **Within-Model Agreement (Weak):** Occurs when a single model repeats a candidate across different beam paths. This often results from tiny token-level perturbations and is a weak signal of ground-truth correctness.
 * **Cross-Model Agreement (Strong):** Occurs when two independently fine-tuned models converge on the exact same string via different generation paths. This is treated as a high-confidence signal, analogous to a **Product-of-Experts (PoE)** distribution.
 
-### 🧮 Scoring Formula
+### Scoring Formula
 The final score for each candidate $h_i$ is calculated as:
 $$score(h_i) = Utility_{weighted}(h_i) + (Bonus_{within} \times Extras) + (Bonus_{cross} \times Agreed)$$
 
@@ -21,7 +21,7 @@ $$score(h_i) = Utility_{weighted}(h_i) + (Bonus_{within} \times Extras) + (Bonus
 
 ---
 
-## 🛠️ Technical Pipeline
+## Technical Pipeline
 
 ### 1. Akkadian-Specific Preprocessing
 The `OptimizedPreprocessor` uses vectorized Pandas operations and Regex to handle:
@@ -49,20 +49,20 @@ The `VectorizedPostprocessor` refines the English output by:
 
 ---
 
-## 📊 Performance & Evolution
+## Performance & Evolution
 * **v13 (34.3):** Single-model baseline.
 * **v17 (35.4):** Two-model ensemble with geometric mean MBR.
 * **v20 (35.6):** Implementation of cross-model-aware agreement bonuses.
 
 ---
 
-## 🏗️ Requirements & Environment
+## Requirements & Environment
 * **Hardware:** Optimized for NVIDIA Tesla T4 (Kaggle environment).
 * **Precision:** Automatic Mixed Precision (**BF16**) for inference speed.
 * **Key Libraries:** `transformers`, `torch`, `sacrebleu`, `pandas`, `optimum` (BetterTransformer).
 
 ---
 
-## 🔗 Project Links
+## Project Link
 For the full implementation and interactive notebook, visit the Kaggle project page:
 **[Kaggle: Cross-Model-Aware Agreement MBR](https://www.kaggle.com/code/francescocampigotto/cross-model-aware-agreement-mbr)**
