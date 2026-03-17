@@ -1,4 +1,4 @@
-# Deep Past Initiative: Akkadian-to-English Translation (v20)
+# Deep Past Initiative: Akkadian-to-English Translation
 
 This repository contains a highly optimized inference pipeline for the **Deep Past Initiative** machine translation challenge. The project focuses on translating ancient Akkadian transliterations into English using a two-model ByT5 ensemble and a novel **Cross-Model-Aware Agreement Minimum Bayes Risk (MBR)** decoding strategy.
 
