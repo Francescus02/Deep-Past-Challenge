@@ -1,23 +1,26 @@
-# Deep Past Initiative: Akkadian-to-English Translation
+# Deep Past Initiative: Akkadian-to-English Translation (Hybrid MBR Ensemble)
 
-This repository contains a highly optimized inference pipeline for the **Deep Past Initiative** machine translation challenge. The project focuses on translating ancient Akkadian transliterations into English using a two-model ByT5 ensemble and a novel **Cross-Model-Aware Agreement Minimum Bayes Risk (MBR)** decoding strategy.
+This repository contains a highly optimized inference pipeline for the **Deep Past Initiative** machine translation challenge. The project focuses on translating ancient Akkadian transliterations into English using a two-model ByT5 ensemble and a streamlined **Hybrid Minimum Bayes Risk (MBR)** decoding strategy.
 
 ---
 
-## Key Innovation: Source-Aware Agreement MBR
+## Key Innovation: Implicit Consensus via Merged Pools
 
-In standard ensemble decoding, candidates are often treated equally regardless of their source. Version 20 introduces **Source-Aware Agreement Scoring**, which distinguishes between two fundamentally different types of evidence:
+Earlier versions of this pipeline (up to v40) used a "Cross-Model-Aware" scoring system that applied explicit mathematical bonuses when both models produced the same string. However, testing revealed that explicit bonuses double-counted the consensus signal and overrode pairwise quality scores on close calls when used alongside composite metrics.
 
-* **Within-Model Agreement (Weak):** Occurs when a single model repeats a candidate across different beam paths. This often results from tiny token-level perturbations and is a weak signal of ground-truth correctness.
-* **Cross-Model Agreement (Strong):** Occurs when two independently fine-tuned models converge on the exact same string via different generation paths. This is treated as a high-confidence signal, analogous to a **Product-of-Experts (PoE)** distribution.
+Version 41 introduces a **Hybrid MBR** approach that captures cross-model agreement *implicitly*:
+* **Merged Pools BEFORE Deduplication:** The raw candidate lists from Model A and Model B are combined into a single pool before any postprocessing or deduplication occurs. 
+* **The Implicit Signal:** When both models independently generate the same translation, it mathematically acts as multiple identical references within the combined pool. 
+* **Uniform Average:** By calculating a simple uniform pairwise average across the deduplicated pool, candidates that were produced by both models naturally score higher because they are highly similar to a denser cluster of consensus candidates. No explicit bonus is needed; the signal is already in the utility.
 
 ### Scoring Formula
-The final score for each candidate $h_i$ is calculated as:
-$$score(h_i) = Utility_{weighted}(h_i) + (Bonus_{within} \times Extras) + (Bonus_{cross} \times Agreed)$$
+The final score for each candidate relies on an additive composite metric and a length tie-breaker, without explicit agreement bonuses:
 
-* **Cross-Model Bonus (+0.12):** Strong independent confirmation.
-* **Within-Model Bonus (+0.015):** Consistency reward for internal repetitions.
-* **Metric Fusion:** Utility is calculated as the geometric mean of **sentence-level BLEU** and **chrF++**.
+`PairwiseScore(h_i) = UniformAverage(0.55 * chrF++ + 0.25 * BLEU + 0.20 * Jaccard)`
+
+`FinalScore(h_i) = PairwiseScore(h_i) + (0.10 * GaussianLengthBonus)`
+
+*Note: The Gaussian length bonus is a symmetric bell curve centered on the median pool length, designed to gently nudge scores (by at most 10 points) to break ties without overriding quality signals.*
 
 ---
 
@@ -31,13 +34,13 @@ The `OptimizedPreprocessor` uses vectorized Pandas operations and Regex to handl
 * **Canonicalization:** Normalizes ancient weights, measures, and fractions (e.g., `0.8333` → `⅚`).
 
 ### 2. Candidate Generation
-To maximize the chances of cross-model collisions, we generate a diverse pool of **~32 candidates per sentence**:
+To maximize the diversity and coverage of the combined pool, we generate **~32 candidates per sentence** by merging a wide temperature spread with targeted epsilon sampling:
 * **Beam Search:** 4 candidates (Beam size 8, LP 1.3).
-* **Multi-Temperature Nucleus Sampling:** 6 candidates across temperatures `[0.6, 0.8, 0.75]`.
-* **Epsilon Sampling:** 6 candidates using `epsilon_cutoff=0.02`.
+* **Multi-Temperature Nucleus Sampling:** 6 candidates across a wide hybrid temperature spread `[0.55, 0.75, 0.95]`.
+* **Epsilon Sampling:** 6 candidates using `epsilon_cutoff=0.02` to inject crucial diversity.
 
 ### 3. Model Orchestration (`InferenceEngine`)
-* **Sequential Loading:** To stay within the **15.6 GB VRAM** limit of the Tesla T4, Model A is loaded, run, and completely unloaded before Model B is initialized.
+* **Sequential Loading:** To stay within the **15.6 GB VRAM** limit of the Tesla T4, Model A is loaded, run, and completely unloaded from the GPU before Model B is initialized.
 * **Bucket-Batching:** Inputs are grouped by length to minimize padding overhead, significantly increasing throughput.
 * **Adaptive Beam Sizing:** Beam width is dynamically adjusted based on input sequence density to optimize speed without sacrificing quality.
 
@@ -50,9 +53,14 @@ The `VectorizedPostprocessor` refines the English output by:
 ---
 
 ## Performance & Evolution
-* **v13 (34.3):** Single-model baseline.
-* **v17 (35.4):** Two-model ensemble with geometric mean MBR.
-* **v20 (35.6):** Implementation of cross-model-aware agreement bonuses.
+* **v13 (34.3):** Single-model, composite MBR
+* **v16 (34.8):** Two-model, pure chrF++ MBR
+* **v17 (35.4):** Two-model, geo-mean(BLEU × chrF++) MBR
+* **v19 (35.5):** Pipeline + standard agreement bonus
+* **v20 (35.6):** Geo-mean, separate pools, cross-model bonus, ε×6
+* **v39 (35.4):** Composite, separate pools, cross-model bonus, ε×6
+* **v40 (35.6):** Composite, separate pools, cross-model bonus, temps [0.55,0.75,0.95], ε×6
+* **v41 (36.2):** Composite, MERGED pools, NO cross-model bonus, temps [0.55,0.75,0.95], ε×6
 
 ---
 
@@ -62,7 +70,6 @@ The `VectorizedPostprocessor` refines the English output by:
 * **Key Libraries:** `transformers`, `torch`, `sacrebleu`, `pandas`, `optimum` (BetterTransformer).
 
 ---
-
 ## Project Link
 For the full implementation and interactive notebook, visit the Kaggle project page:
-**[Kaggle: Cross-Model-Aware Agreement MBR](https://www.kaggle.com/code/francescocampigotto/cross-model-aware-agreement-mbr)**
+**[Kaggle: Hybrid MBR Ensemble for Akkadian Translation](https://www.kaggle.com/code/francescocampigotto/hybrid-mbr-ensemble-for-akkadian-translation)**
