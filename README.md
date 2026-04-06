@@ -58,7 +58,6 @@ The `VectorizedPostprocessor` refines the English output by:
 * **v17 (35.4):** Two-model, geo-mean(BLEU × chrF++) MBR
 * **v19 (35.5):** Pipeline + standard agreement bonus
 * **v20 (35.6):** Geo-mean, separate pools, cross-model bonus, ε×6
-* **v39 (35.4):** Composite, separate pools, cross-model bonus, ε×6
 * **v40 (35.6):** Composite, separate pools, cross-model bonus, temps [0.55,0.75,0.95], ε×6
 * **v41 (36.2):** Composite, MERGED pools, NO cross-model bonus, temps [0.55,0.75,0.95], ε×6
 
